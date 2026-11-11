@@ -1,0 +1,52 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install Cordova CLI
+      run: npm install -g cordova
+
+    - name: Create Cordova Project Structure
+      run: |
+        cordova create my-app com.farukgazi.app MyApp
+        cd my-app
+        
+        # আপনার মূল ফাইলগুলো (index.html, config.xml, icon.png) রুট ফোল্ডার থেকে কর্ডোভা প্রজেক্টে কপি করা
+        cp -r ../www/* www/ 2>/dev/null || :
+        [ -f ../config.xml ] && cp ../config.xml .
+        [ -f ../icon.png ] && cp ../icon.png .
+        
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম যোগ করা
+        cordova platform add android
+
+    - name: Build Android Release APK
+      run: |
+        cd my-app
+        cordova build android --release
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: my-app/platforms/android/app/build/outputs/apk/release/*.apk
